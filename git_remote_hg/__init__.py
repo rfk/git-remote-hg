@@ -97,7 +97,11 @@ def main(argv=None, git_dir=None):
     if argv is None:
         argv = sys.argv
     if git_dir is None:
+        git_dir = os.environ.get("GIT_DIR", None)
+    if git_dir is None:
         git_dir = os.getcwd()
+        if os.path.exists(os.path.join(git_dir, ".git")):
+            git_dir = os.path.join(git_dir, ".git")
 
     #  AFAICT, we always get the hg repo url as the second argument.
     hg_url = argv[2]
@@ -148,7 +152,7 @@ class HgGitCheckout(object):
     def __init__(self, git_dir, hg_url):
         self.hg_url = hg_url
         self.hg_name = hg_name = urllib.quote(hg_url, safe="")
-        self.hg_repo_dir = os.path.join(git_dir, ".git", "hgremotes", hg_name)
+        self.hg_repo_dir = os.path.join(git_dir, "hgremotes", hg_name)
         if not os.path.exists(self.hg_repo_dir):
             self.initialize_hg_repo()
         self.git_repo_dir = os.path.join(self.hg_repo_dir, ".hg", "git")
@@ -160,7 +164,7 @@ class HgGitCheckout(object):
         p = subprocess.Popen(cmd, **kwds)
         output = p.stdout.readline()
         while output:
-            print>>sys.stderr, "hg :: " + output
+            print>>sys.stderr, "hg :: " + output.strip()
             output = p.stdout.readline()
         p.wait()
 
