@@ -1,63 +1,44 @@
 
 
-dexml:  a dead-simple Object-XML mapper for Python
-==================================================
+git_remote_hg:  access hg repositories as git remotes
+=====================================================
 
-Let's face it: xml is a fact of modern life.  I'd even go so far as to say
-that it's *good* at what is does.  But that doesn't mean it's easy to work
-with and it doesn't mean that we have to like it.  Most of the time, XML
-just needs to get out of the way and let you do some actual work instead
-of writing code to traverse and manipulate yet another DOM.
+Are you a git junkie forced to work on projects hosted in mercurial repos?
+Are you too lazy, stubborn or maladjusted to learn another VCS tool?
+Fear not!  This simple script will let you interact with mercurial repositories
+as if they were ordinary git remotes.
 
-The dexml module takes the obvious mapping between XML tags and Python objects
-and lets you capture that as cleanly as possible.  Loosely inspired by Django's
-ORM, you write simple class definitions to define the expected structure of
-your XML document.  Like so::
+Git allows pluggable remote repository protocols via helper scripts.  If you
+have a script named "git-remote-XXX" then git will use it to interact with
+remote repositories whose URLs are of the form XXX::some-url-here.  So you
+can imagine what a script named git-remote-hg will do.
 
-  >>> import dexml
-  >>> from dexml import fields
-  >>> class Person(dexml.Model):
-  ...   name = fields.String()
-  ...   age = fields.Integer(tagname='age')
+Yes, this script provides a remote repository protocol for communicating with 
+mercurial.  Install it and you can do::
 
-Then you can parse an XML document into an object like this::
+    $ git clone hg::https://hg.example.com/some-hg-repo
+    $ cd some-hg-repo
+    $ # hackety hackety hack
+    $ git commit -a
+    $ git push
 
-  >>> p = Person.parse("<Person name='Foo McBar'><age>42</age></Person>")
-  >>> p.name
-  u'Foo McBar'
-  >>> p.age
-  42
+The heavy lifting is done via the awesome hg-git module and git's own HTTP
+HTTP protocol helpers - the code here just hacks them together to shuffle
+bytes back and forth in the manner expected by a remote protocol helper.
 
-And you can render an object into an XML document like this::
+Here's how it works:
 
-  >>> p = Person(name="Handsome B. Wonderful",age=36)
-  >>> p.render()
-  '<?xml version="1.0" ?><Person name="Handsome B. Wonderful"><age>36</age></Person>'
+    * use hg to take a local checkout, stored under.git/hgremotes/<URL>/ 
+    * call `hg pull` and `hg gexport` on it, to pull in the latest
+      changes from the mercurial repo.  We now have a matching git
+      repo at .git/hgremotes/<URL>/.hg/git
+    * spawn a local HTTP server that proxies to git-http-backend,
+      serving repo at .git/hgremotes/<URL>/.hg/git
+    * call git-remote-http and point it at this local server; this lets
+      git push or pull to it as normal
+    * call `hg gimport` to push the changes back into the local hg checkout
+    * call `hg push` to send any changes back to mercurial.
 
-Malformed documents will raise a ParseError::
+Ugly?  Sure.  Hacky?  You bet.  But it seems to work remarkably well.
 
-  >>> p = Person.parse("<Person><age>92</age></Person>")
-  Traceback (most recent call last):
-      ...
-  ParseError: required field not found: 'name'
-
-Of course, it gets more interesting when you nest Model definitions, like this::
-
-  >>> class Group(dexml.Model):
-  ...   name = fields.String(attrname="name")
-  ...   members = fields.List(Person)
-  ...
-  >>> g = Group(name="Monty Python")
-  >>> g.members.append(Person(name="John Cleese",age=69))
-  >>> g.members.append(Person(name="Terry Jones",age=67))
-  >>> g.render(fragment=True)
-  '<Group name="Monty Python"><Person name="John Cleese"><age>69</age></Person><Person name="Terry Jones"><age>67</age></Person></Group>'
-
-There's support for XML namespaces, default field values, case-insensitive
-parsing, and more fun stuff.  Check out the documentation on the following
-classes for more details:
-
-  :Model:  the base class for objects that map into XML
-  :Field:  the base class for individual model fields
-  :Meta:   meta-information about how to parse/render a model
 
