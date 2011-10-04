@@ -171,12 +171,14 @@ class HgGitCheckout(object):
 
     def _do(self, *cmd, **kwds):
         """Run a hg command, capturing and reporting output."""
+        silent = kwds.pop("silent", False)
         kwds["stdout"] = subprocess.PIPE
         kwds["stderr"] = subprocess.STDOUT
         p = subprocess.Popen(cmd, **kwds)
         output = p.stdout.readline()
         while output:
-            print>>sys.stderr, "hg :: " + output.strip()
+            if not silent:
+                print>>sys.stderr, "hg :: " + output.strip()
             output = p.stdout.readline()
         p.wait()
 
@@ -198,7 +200,7 @@ class HgGitCheckout(object):
         if not os.path.isdir(os.path.dirname(hg_repo_dir)):
             os.makedirs(os.path.dirname(hg_repo_dir))
         self._do("hg", "clone", self.hg_url, hg_repo_dir)
-        self._do("hg", "update", "null", cwd=hg_repo_dir)
+        self._do("hg", "update", "null", cwd=hg_repo_dir, silent=True)
         with open(os.path.join(hg_repo_dir, "README.txt"), "wt") as f:
             f.write(dedent("""
             This is a bare mercurial checkout created by git-remote-hg.
