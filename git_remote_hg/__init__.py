@@ -30,20 +30,20 @@ them together to make it all work a little easier.
 For each remote mercurial repository, you actually get *two* additional
 repositories hidden inside your local git repo:
 
-    .git/hgremotes/[URL]:           a local hg clone of the remote repo
-    .git/hgremotes/[URL]/.hg/git:   a bare git repo managed by hg-git
+    * .git/hgremotes/[URL]:           a local hg clone of the remote repo
+    * .git/hgremotes/[URL]/.hg/git:   a bare git repo managed by hg-git
 
 Pushing from your local git repo into the remote mercurial repo goes like
 this:
 
     * use git-remote-http to push into .git/hgremotes/[URL]/.hg/git
-    * call `hg gimport` to import changes into .git/hgremotes/[URL]
-    * call `hg push` to push them up to the remote repo
+    * call "hg gimport" to import changes into .git/hgremotes/[URL]
+    * call "hg push" to push them up to the remote repo
 
 Likewise, pulling from the remote mercurial repo goes like this:
 
-    * call `hg pull` to pull changes from the remote repo
-    * call `hg gexport` to export them into .git/hgremotes/[URL]/.hg/git
+    * call "hg pull" to pull changes from the remote repo
+    * call "hg gexport" to export them into .git/hgremotes/[URL]/.hg/git
     * use git-remote-http to pull them into your local repo
 
 Ugly?  Sure.  Hacky?  You bet.  But it seems to work remarkably well.
