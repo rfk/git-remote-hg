@@ -34,6 +34,7 @@ AUTHOR_EMAIL = "ryan@rfk.id.au"
 URL="http://packages.python.org/git-remote-hg"
 LICENSE = "MIT"
 KEYWORDS = "git hg mercurial"
+SCRIPTS = ["scripts/git-remote-hg"]
 CLASSIFIERS = [
     "Programming Language :: Python",
     "Programming Language :: Python :: 2",
@@ -56,6 +57,7 @@ setup(name=NAME,
       license=LICENSE,
       keywords=KEYWORDS,
       packages=["git_remote_hg"],
+      scripts=SCRIPTS,
       classifiers=CLASSIFIERS
      )
 
