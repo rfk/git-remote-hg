@@ -59,7 +59,9 @@ hassle.
 
 THINGS TO DO:
 
-    * I'm not clear exactly how mercurials bookmarks work.  hg-git seems to
+    * I'm not clear exactly how mercurial bookmarks work.  hg-git seems to
       map them to git branches, but there are probaby some issues with how
-      git-remote-hg exposes this to the user.
+      git-remote-hg exposes this to the user.  It *should* be possible for
+      bookmarks to appear as multiple remote branches, but I don't need it
+      so I haven't tried it.
 
