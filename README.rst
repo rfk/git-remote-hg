@@ -27,7 +27,7 @@ none of your co-workers will be any the wiser.
 
 All the hard work of interoperating between git and mercurial is done by the
 awesome hg-git module.  All the hard work of speaking the git-remote-helper
-protocol is done by git's own http-protol handlers.  This script just hacks
+protocol is done by git's own http-protocol handlers.  This script just hacks
 them together to make it all work a little easier.
 
 For each remote mercurial repository, you actually get *two* additional
