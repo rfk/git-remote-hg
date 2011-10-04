@@ -5,7 +5,10 @@
 #  This script is placed in the public domain.
 #
 
-from setuptools import setup
+try:
+    from setuptools import setup
+except ImportError:
+    from distutils.core import setup
 
 #  Extract the docstring and version declaration from the module.
 #  To avoid errors due to missing dependencies or bad python versions,
@@ -35,6 +38,7 @@ URL="http://packages.python.org/git-remote-hg"
 LICENSE = "MIT"
 KEYWORDS = "git hg mercurial"
 SCRIPTS = ["scripts/git-remote-hg"]
+INSTALL_REQUIRES = ["hg-git"]
 CLASSIFIERS = [
     "Programming Language :: Python",
     "Programming Language :: Python :: 2",
@@ -58,6 +62,7 @@ setup(name=NAME,
       keywords=KEYWORDS,
       packages=["git_remote_hg"],
       scripts=SCRIPTS,
+      install_requires=INSTALL_REQUIRES,
       classifiers=CLASSIFIERS
      )
 
