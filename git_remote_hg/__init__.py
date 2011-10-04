@@ -57,13 +57,13 @@ Since the git-remote-helper protocol is pretty simple, it should be possible
 to switch back and forth between that implementation and this one without any
 hassle.
 
-THINGS TO DO:
+WARNINGS:
 
-    * I'm not clear exactly how mercurial bookmarks work.  hg-git seems to
-      map them to git branches, but there are probaby some issues with how
-      git-remote-hg exposes this to the user.  It *should* be possible for
-      bookmarks to appear as multiple remote branches, but I don't need it
-      so I haven't tried it.
+    * Pushing multiple branches into the remote is currently broken.
+
+      hg-git seems to map git branches onto mercurial bookmarks, but I'm not
+      sure of all the details.  I don't need it so I haven't tried to make it
+      work.  Don't do it.
 
 """
 
