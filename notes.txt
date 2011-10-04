@@ -1,0 +1,47 @@
+
+http://mercurial.selenic.com/wiki/HgGit
+http://hg-git.github.com/
+http://traviscline.com/blog/2010/04/27/using-hg-git-to-work-in-git-and-push-to-hg/
+http://offbytwo.com/git-hg/
+https://plus.google.com/115991361267198418069/posts/Jpzi24bYU91
+
+# make sure you have no local modifications!
+hg status
+
+[git]
+intree=0
+
+# git branches map to hg bookmarks
+# make sure we have a branch called "master"
+hg bookmark -r default master
+
+# export all the changesets into git format
+# this makes a local bare repo in .hg/git
+hg gexport
+
+# init a proper git repo
+git init .
+
+# link it to the hg-controlled one, and pull from it
+git remote add mercurial .hg/git
+git pull mercurial master
+
+# add github for backing up
+git remote add origin git@github.com:rfk/moz-server-core.git
+git push origin master
+
+# branch, edit, commit, merge, etc
+
+# export changes from master back to hg-controlled git
+git push mercurial master
+hg gimport
+
+
+
+# to create bare hg repo:
+hg update null
+
+[hooks]
+post-pull.bookmark-sync-master = hg bookmark -f -r default master
+post-pull.export-to-git = hg gexport
+
