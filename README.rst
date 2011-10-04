@@ -57,3 +57,9 @@ Since the git-remote-helper protocol is pretty simple, it should be possible
 to switch back and forth between that implementation and this one without any
 hassle.
 
+THINGS TO DO:
+
+    * I'm not clear exactly how mercurials bookmarks work.  hg-git seems to
+      map them to git branches, but there are probaby some issues with how
+      git-remote-hg exposes this to the user.
+
