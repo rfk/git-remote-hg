@@ -1,7 +1,7 @@
 
 v0.1.1:
 
-  * trim down output for some hg commands, to reduce noise and confusion.
+  * tweak display of output from hg commands, to reduce noise and confusion.
 
 v0.1.0:
 

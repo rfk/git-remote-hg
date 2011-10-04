@@ -178,7 +178,7 @@ class HgGitCheckout(object):
         output = p.stdout.readline()
         while output:
             if not silent:
-                print>>sys.stderr, "hg :: " + output.strip()
+                print>>sys.stderr, "hg: " + output.strip()
             output = p.stdout.readline()
         p.wait()
 
