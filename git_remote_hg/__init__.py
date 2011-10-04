@@ -170,17 +170,21 @@ class HgGitCheckout(object):
 
     def pull(self):
         """Grab any changes from the remote repository."""
-        self._do("hg", "pull", cwd=self.hg_repo_dir)
-        self._do("hg", "gexport", cwd=self.hg_repo_dir)
+        hg_repo_dir = self.hg_repo_dir
+        self._do("hg", "pull", cwd=hg_repo_dir)
+        self._do("hg", "bookmark", "-fr", "default", "master", cwd=hg_repo_dir)
+        self._do("hg", "gexport", cwd=hg_repo_dir)
 
     def push(self):
         """Push any changes into the remote repository."""
-        self._do("hg", "gimport", cwd=self.hg_repo_dir)
-        self._do("hg", "push", cwd=self.hg_repo_dir)
+        hg_repo_dir = self.hg_repo_dir
+        self._do("hg", "gimport", cwd=hg_repo_dir)
+        self._do("hg", "push", cwd=hg_repo_dir)
 
     def initialize_hg_repo(self):
         hg_repo_dir = self.hg_repo_dir
-        os.makedirs(os.path.dirname(hg_repo_dir))
+        if not os.path.isdir(os.path.dirname(hg_repo_dir)):
+            os.makedirs(os.path.dirname(hg_repo_dir))
         self._do("hg", "clone", self.hg_url, hg_repo_dir)
         self._do("hg", "update", "null", cwd=hg_repo_dir)
         with open(os.path.join(hg_repo_dir, "README.txt"), "wt") as f:
