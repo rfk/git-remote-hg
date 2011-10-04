@@ -5,42 +5,57 @@ git_remote_hg:  access hg repositories as git remotes
 
 Are you a git junkie forced to work on projects hosted in mercurial repos?
 Are you too lazy, stubborn or maladjusted to learn another VCS tool?
-Fear not!  This simple script will let you interact with mercurial repositories
-as if they were ordinary git remotes.
+Fear not!  This script will let you interact with mercurial repositories as
+if they were ordinary git remotes.
 
 Git allows pluggable remote repository protocols via helper scripts.  If you
 have a script named "git-remote-XXX" then git will use it to interact with
 remote repositories whose URLs are of the form XXX::some-url-here.  So you
 can imagine what a script named git-remote-hg will do.
 
-Yes, this script provides a remote repository protocol for communicating with 
-mercurial.  Install it and you can do::
+Yes, this script provides a remote repository implementation that communicates
+with mercurial.  Install it and you can do::
 
-    $ git clone hg::https://hg.example.com/some-hg-repo
+    $ git clone hg::https://hg.example.com/some-mercurial-repo
     $ cd some-hg-repo
     $ # hackety hackety hack
     $ git commit -a
     $ git push
 
-The heavy lifting is done via the awesome hg-git module and git's own HTTP
-HTTP protocol helpers - the code here just hacks them together to shuffle
-bytes back and forth in the manner expected by a remote protocol helper.
+All the hard work of interoperating between git and mercurial is done by the
+awesome hg-git module.  All the hard work of speaking the git-remote-helper
+protocol is done by git's own http-protol handlers.  This script just hacks
+them together to make it all work a little easier.
 
-Here's how it works:
+For each remote mercurial repository, you actually get *two* additional
+repositories hidden inside your local git repo:
 
-    * use hg to take a local checkout, stored under.git/hgremotes/<URL>/ 
-    * call `hg pull` and `hg gexport` on it, to pull in the latest
-      changes from the mercurial repo.  We now have a matching git
-      repo at .git/hgremotes/<URL>/.hg/git
-    * spawn a local HTTP server that proxies to git-http-backend,
-      serving repo at .git/hgremotes/<URL>/.hg/git
-    * call git-remote-http and point it at this local server; this lets
-      git push or pull to it as normal
-    * call `hg gimport` to push the changes back into the local hg checkout
-    * call `hg push` to send any changes back to mercurial.
+    .git/hgremotes/[URL]:           a local hg clone of the remote repo
+    .git/hgremotes/[URL]/.hg/git:   a bare git repo managed by hg-git
+
+Pushing from your local git repo into the remote mercurial repo goes like
+this:
+
+    * use git-remote-http to push into .git/hgremotes/[URL]/.hg/git
+    * call `hg gimport` to import changes into .git/hgremotes/[URL]
+    * call `hg push` to push them up to the remote repo
+
+Likewise, pulling from the remote mercurial repo goes like this:
+
+    * call `hg pull` to pull changes from the remote repo
+    * call `hg gexport` to export them into .git/hgremotes/[URL]/.hg/git
+    * use git-remote-http to pull them into your local repo
 
 Ugly?  Sure.  Hacky?  You bet.  But it seems to work remarkably well.
 
+There is apparently a native implementation of a git-remote-hg command in
+development:
+
+    https://plus.google.com/115991361267198418069/posts/Jpzi24bYU91
+
+Since the git-remote-helper protocol is pretty simple, it should be possible
+to switch back and forth between that implementation and this one without any
+hassle.
 
 """
 
@@ -62,35 +77,73 @@ import wsgiref.simple_server
 from textwrap import dedent
 
 
-def git_remote_hg(argv=None, git_dir=None):
+def main(argv=None, git_dir=None):
+    """Main entry-point for the git-remote-hg script.
+
+    This function can be called to act as a git-remote-helper script that
+    will communicate with a remote mercurial repository.  It basically does
+    the following:
+
+        * ensure there's a local hg checkout in .git/hgremotes/[URL]
+        * ensure that it has a matching hg-git repo for import/export
+        * update the hg-git repo from the remote mercurial repo
+        * start a background thread running git-http-backend to communicate
+          with the hg-git repo
+        * shell out to hg-remote-http to push/pull into the hg-git repo
+        * send any changes from the hg-git repo back to the remote
+
+    Simple, right?
+    """
     if argv is None:
         argv = sys.argv
     if git_dir is None:
         git_dir = os.getcwd()
 
+    #  AFAICT, we always get the hg repo url as the second argument.
     hg_url = argv[2]
-    hg_checkout = HgGitCheckout(git_dir, hg_url)
 
+    #  Grab the local hg-git checkout, creating it if necessary.
+    hg_checkout = HgGitCheckout(git_dir, hg_url)
+    
+    #  Start git-http-backend to push/pull into the hg-git checkout.
     backend = GitHttpBackend(hg_checkout.git_repo_dir)
     t = backend.start()
     try:
+        #  Wait for the server to come up.
         while backend.repo_url is None:
            time.sleep(0.1)
 
+        #  Grab any updates from the remote repo.
+        #  Do it unconditionally for now, so we don't have to interpret
+        #  the incoming hg-remote-helper stream to determine push/pull.
         hg_checkout.pull()
+
+        #  Use git-remote-http to send all commands to the HTTP server.
+        #  This will push any incoming changes into the hg-git checkout.
         cmd = ("git", "remote-http", backend.repo_url, )
         retcode = subprocess.call(cmd, env=os.environ)
+        #  TODO: what are valid return codes?  Seems to be almost always 1.
         if retcode not in (0, 1):
             msg = "git-remote-http failed with error code %d" % (retcode,)
             raise RuntimeError(msg)
+
+        #  If that worked OK, push any changes up to the remote URL.
+        #  Do it unconditionally for now, so we don't have to interpret
+        #  the incoming hg-remote-helper stream to determine push/pull.
         hg_checkout.push()
     finally:
+        #  Make sure we tearn down the HTTP server before quitting.
         backend.stop()
         t.join()
 
 
 class HgGitCheckout(object):
-    """Class managing a local hg-git checkout."""
+    """Class managing a local hg-git checkout.
+
+    Given the path of a local git repository and the URL of a remote hg
+    repository, this class manages a hidden hg-git checkout that can be
+    used to shuffle changes between the two.
+    """
 
     def __init__(self, git_dir, hg_url):
         self.hg_url = hg_url
@@ -101,19 +154,27 @@ class HgGitCheckout(object):
         self.git_repo_dir = os.path.join(self.hg_repo_dir, ".hg", "git")
 
     def _do(self, *cmd, **kwds):
-        kwds.setdefault("stdout", sys.stderr)
-        return subprocess.check_call(cmd, **kwds)
+        """Run a hg command, capturing and reporting output."""
+        kwds["stdout"] = subprocess.PIPE
+        kwds["stderr"] = subprocess.STDOUT
+        p = subprocess.Popen(cmd, **kwds)
+        output = p.stdout.readline()
+        while output:
+            print>>sys.stderr, "hg :: " + output
+            output = p.stdout.readline()
+        p.wait()
 
     def pull(self):
+        """Grab any changes from the remote repository."""
         self._do("hg", "pull", cwd=self.hg_repo_dir)
         self._do("hg", "gexport", cwd=self.hg_repo_dir)
 
     def push(self):
+        """Push any changes into the remote repository."""
         self._do("hg", "gimport", cwd=self.hg_repo_dir)
         self._do("hg", "push", cwd=self.hg_repo_dir)
 
     def initialize_hg_repo(self):
-        print>>sys.stderr, "initializing hg repo from", self.hg_url
         hg_repo_dir = self.hg_repo_dir
         os.makedirs(os.path.dirname(hg_repo_dir))
         self._do("hg", "clone", self.hg_url, hg_repo_dir)
@@ -135,13 +196,12 @@ class HgGitCheckout(object):
 
 class SilentWSGIRequestHandler(wsgiref.simple_server.WSGIRequestHandler):
     """WSGIRequestHandler that doesn't print to stderr for each request."""
-
     def log_message(self, format, *args):
         pass
 
 
 class GitHttpBackend(object):
-    """Run git-http-backend in a backend thread.
+    """Run git-http-backend in a background thread.
 
     This helper class lets us run the git-http-backend server in a background
     thread, bound to a local tcp port.  The main thread can then interact
@@ -157,6 +217,12 @@ class GitHttpBackend(object):
         self.repo_url = None
 
     def __call__(self, environ, start_response):
+        """WSGI handler.
+
+        This simply sends all requests out to git-http-backend via
+        standard CGI protocol.  It's nasty and inefficient but good
+        enough for local use.
+        """
         cgienv = os.environ.copy()
         for (k,v) in environ.iteritems():
             if isinstance(v, str):
@@ -185,6 +251,7 @@ class GitHttpBackend(object):
         return make(addr, port, self, handler_class=SilentWSGIRequestHandler)
                                                  
     def run(self):
+        """Run the git-http-backend server."""
         port = 8091
         while True:
             try:
@@ -197,17 +264,13 @@ class GitHttpBackend(object):
         self.server.serve_forever()
 
     def start(self):
+        """Run the git-http-backend server in a new thread."""
         t = threading.Thread(target=self.run)
         t.start()
         return t
 
     def stop(self):
+        """Stop the git-http-backend server."""
         self.server.shutdown()
 
-
-if __name__ == "__main__":
-    try:
-        main()
-    except KeyboardInterrupt:
-        sys.exit(1)
 
