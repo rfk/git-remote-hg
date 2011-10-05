@@ -17,7 +17,7 @@ Yes, this script provides a remote repository implementation that communicates
 with mercurial.  Install it and you can do::
 
     $ git clone hg::https://hg.example.com/some-mercurial-repo
-    $ cd some-hg-repo
+    $ cd some-mercurial-repo
     $ # hackety hackety hack
     $ git commit -a
     $ git push
