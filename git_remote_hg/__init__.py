@@ -3,10 +3,10 @@
 git_remote_hg:  access hg repositories as git remotes
 =====================================================
 
-Are you a git junkie forced to work on projects hosted in mercurial repos?
-Are you too lazy, stubborn or maladjusted to learn another VCS tool?
-Fear not!  This script will let you interact with mercurial repositories as
-if they were ordinary git remotes.
+Are you a git junkie but need to work on projects hosted in mercurial repos?
+Are you too stubborn, lazy or maladjusted to learn another VCS tool?  I
+know I am.  But fear not!  This script will let you interact with mercurial
+repositories as if they were ordinary git remotes.
 
 Git allows pluggable remote repository protocols via helper scripts.  If you
 have a script named "git-remote-XXX" then git will use it to interact with
@@ -73,7 +73,7 @@ WARNINGS:
 
 __ver_major__ = 0
 __ver_minor__ = 1
-__ver_patch__ = 0
+__ver_patch__ = 1
 __ver_sub__ = ""
 __version__ = "%d.%d.%d%s" % (__ver_major__,__ver_minor__,__ver_patch__,__ver_sub__)
 
