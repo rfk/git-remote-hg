@@ -84,7 +84,7 @@ import subprocess
 import threading
 import socket
 import time
-import urllib
+import urllib.request, urllib.parse, urllib.error
 import wsgiref.simple_server
 from textwrap import dedent
 
@@ -163,7 +163,7 @@ class HgGitCheckout(object):
 
     def __init__(self, git_dir, hg_url):
         self.hg_url = hg_url
-        self.hg_name = hg_name = urllib.quote(hg_url, safe="")
+        self.hg_name = hg_name = urllib.parse.quote(hg_url, safe="")
         self.hg_repo_dir = os.path.join(git_dir, "hgremotes", hg_name)
         if not os.path.exists(self.hg_repo_dir):
             self.initialize_hg_repo()
@@ -178,7 +178,7 @@ class HgGitCheckout(object):
         output = p.stdout.readline()
         while output:
             if not silent:
-                print>>sys.stderr, "hg: " + output.strip()
+                print("hg: " + output.strip(), file=sys.stderr)
             output = p.stdout.readline()
         p.wait()
 
@@ -246,7 +246,7 @@ class GitHttpBackend(object):
         enough for local use.
         """
         cgienv = os.environ.copy()
-        for (k,v) in environ.iteritems():
+        for (k,v) in environ.items():
             if isinstance(v, str):
                 cgienv[k] = v
         cgienv["GIT_PROJECT_ROOT"] = self.git_project_root
