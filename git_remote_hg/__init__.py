@@ -71,6 +71,8 @@ WARNINGS:
 
 """
 
+from __future__ import unicode_literals, print_function
+
 __ver_major__ = 0
 __ver_minor__ = 1
 __ver_patch__ = 1
@@ -84,7 +86,10 @@ import subprocess
 import threading
 import socket
 import time
-import urllib.request, urllib.parse, urllib.error
+if sys.version_info[0] < 3:
+    from urllib import quote as url_quote
+else:
+    from urllib.parse import quote as url_quote
 import wsgiref.simple_server
 from textwrap import dedent
 
@@ -163,7 +168,7 @@ class HgGitCheckout(object):
 
     def __init__(self, git_dir, hg_url):
         self.hg_url = hg_url
-        self.hg_name = hg_name = urllib.parse.quote(hg_url, safe="")
+        self.hg_name = hg_name = url_quote(hg_url, safe="")
         self.hg_repo_dir = os.path.join(git_dir, "hgremotes", hg_name)
         if not os.path.exists(self.hg_repo_dir):
             self.initialize_hg_repo()
@@ -172,14 +177,13 @@ class HgGitCheckout(object):
     def _do(self, *cmd, **kwds):
         """Run a hg command, capturing and reporting output."""
         silent = kwds.pop("silent", False)
-        kwds["stdout"] = subprocess.PIPE
-        kwds["stderr"] = subprocess.STDOUT
-        p = subprocess.Popen(cmd, **kwds)
-        output = p.stdout.readline()
-        while output:
+        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, **kwds)
+        while True:
+            output = p.stdout.readline().strip().decode('UTF-8') # not sure UTF-8 would always be correct here..
+            if not output:
+                break
             if not silent:
-                print("hg: " + output.strip(), file=sys.stderr)
-            output = p.stdout.readline()
+                print("hg: " + output, file=sys.stderr)
         p.wait()
 
     def pull(self):
