@@ -1,4 +1,15 @@
 
+NOTE
+====
+
+You should almost certainly be using this more official, more actively
+maintained tool that does the same thing but better:
+
+  https://github.com/felipec/git/wiki/git-remote-hg
+
+
+If you're still interested in taking my python version of a spin, read on...
+
 
 git_remote_hg:  access hg repositories as git remotes
 =====================================================
