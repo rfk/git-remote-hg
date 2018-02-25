@@ -1,14 +1,17 @@
 
-NOTE
-====
+Status: Unmaintained
+====================
+
+.. image:: http://unmaintained.tech/badge.svg
+     :target: http://unmaintained.tech/
+     :alt: No Maintenance Intended
+
+I am `no longer actively maintaining this project <https://rfk.id.au/blog/entry/archiving-open-source-projects/>`_.
 
 You should almost certainly be using this more official, more actively
 maintained tool that does the same thing but better:
 
   https://github.com/felipec/git/wiki/git-remote-hg
-
-
-If you're still interested in taking my python version of a spin, read on...
 
 
 git_remote_hg:  access hg repositories as git remotes
